@@ -99,12 +99,12 @@ const img = (keyword, lock = 1) => {
   return U(pool[_counters[cat]]);
 };
 
-const DEFAULT_CARE =
+export const DEFAULT_CARE =
   'Cắt chéo gốc hoa khoảng 2cm trước khi cắm vào bình nước sạch. ' +
   'Thay nước mỗi ngày, để hoa nơi thoáng mát và tránh ánh nắng trực tiếp. ' +
   'Với lan hồ điệp và cây chậu, chỉ tưới lượng nước vừa phải 2–3 lần mỗi tuần.';
 
-const DEFAULT_DELIVERY =
+export const DEFAULT_DELIVERY =
   'Bloomora giao hoa tận nơi trong 2–4 giờ tại nội thành TP. Hồ Chí Minh và Hà Nội. ' +
   'Hoa được đóng gói cẩn thận trong hộp giữ ẩm, kèm thiệp viết tay miễn phí theo yêu cầu của bạn.';
 
