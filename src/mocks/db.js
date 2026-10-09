@@ -1,7 +1,103 @@
 // Mock database cho Bloomora — dữ liệu tiếng Việt, giá VND
 // Lưu ý: đây là dữ liệu giả lập phía client, handlers có thể thay đổi trực tiếp các mảng này.
 
-const img = (keyword, lock) => `https://loremflickr.com/800/1000/${keyword}?lock=${lock}`;
+// Ảnh thật từ Unsplash CDN (đã verify từng URL trả 200 OK, cho phép hotlink,
+// hỗ trợ resize qua params w/q/auto/fit nên nhẹ). Thay loremflickr (đã chết, trả 401).
+const U = (id) => `https://images.unsplash.com/photo-${id}?w=800&q=80&auto=format&fit=crop`;
+
+const POOLS = {
+  roses: [
+    '1518895949257-7621c3c786d7', // hồng đỏ close-up
+    '1494972308805-463bc619d34e', // hoa hồng
+    '1520763185298-1b434c919102', // hoa hồng
+    '1455659817273-f96807779a8a', // bó hồng pastel
+    '1496062031456-07b8f162a322', // hồng đỏ đọng sương
+    '1512056495345-913a0c261dc8', // bó hồng đỏ
+    '1508610048659-a06b669e3321', // hồng cầu vồng
+  ],
+  mixed: [
+    '1526047932273-341f2a7631f9', // hoa hồng phấn
+    '1490750967868-88aa4486c946', // hoa anh đào hồng
+    '1457089328109-e5d9bd499191', // bó hoa rực rỡ
+    '1533616688419-b7a585564566', // bình hoa cam (có tulip)
+    '1487530811176-3780de880c2d', // bó hoa cưới
+  ],
+  lilies: [
+    '1469259943454-aa100abba749', // loa kèn hồng
+    '1502977249166-824b3a8a4d6d', // lily hồng
+    '1462275646964-a0e3386b89fa', // hoa trắng
+    '1490750967868-88aa4486c946', // hoa hồng phấn
+  ],
+  orchid: [
+    '1610397648930-477b8c7f0943', // lan hồ điệp hồng
+    '1462275646964-a0e3386b89fa', // hoa trắng
+    '1495231916356-a86217efff12', // hồng trắng
+    '1522383225653-ed111181a951', // hoa anh đào trắng
+  ],
+  sunflower: [
+    '1470509037663-253afd7f0f51', // hoa hướng dương
+    '1597848212624-a19eb35e2651', // cánh đồng hướng dương
+    '1457089328109-e5d9bd499191', // bó hoa rực rỡ
+    '1533616688419-b7a585564566', // bình hoa tone ấm
+  ],
+  white: [
+    '1462275646964-a0e3386b89fa', // hoa trắng
+    '1495231916356-a86217efff12', // hồng trắng
+    '1522383225653-ed111181a951', // hoa anh đào trắng
+    '1490750967868-88aa4486c946', // hoa hồng phấn
+  ],
+  wedding: [
+    '1465495976277-4387d4b0b4c6',
+    '1519225421980-715cb0215aed',
+    '1522673607200-164d1b6ce486',
+    '1469371670807-013ccf25f16a',
+    '1519741497674-611481863552',
+    '1606800052052-a08af7148866',
+    '1583939003579-730e3918a45a',
+    '1520854221256-17451cc331bf',
+  ],
+  plants: [
+    '1463320726281-696a485928c7', // cây xanh
+    '1416879595882-3373a0480b5b', // vườn cây
+    '1485955900006-10f4d324d411', // chậu cây
+    '1509423350716-97f9360b4e09', // sen đá
+    '1493957988430-a5f2e15f39a3', // xương rồng
+    '1614594975525-e45190c55d0b', // trầu bà monstera
+    '1611211232932-da3113c5b960', // lưỡi hổ
+  ],
+};
+
+// Xếp keyword cũ (kiểu loremflickr) vào pool ảnh phù hợp nhất
+const categorize = (kw) => {
+  const k = String(kw).toLowerCase();
+  if (/portrait|avatar/.test(k)) return 'avatar';
+  if (/white/.test(k) && /rose/.test(k)) return 'white';
+  if (/rose/.test(k)) return 'roses';
+  if (/orchid|phalaenopsis|oncidium/.test(k)) return 'orchid';
+  if (/lil/.test(k)) return 'lilies';
+  if (/sunflower/.test(k)) return 'sunflower';
+  if (/wedding|bridal|bride/.test(k)) return 'wedding';
+  if (/funeral|wreath|sympathy/.test(k)) return 'white';
+  if (/plant|succulent|cactus|monstera|pothos|indoor|hanging/.test(k)) return 'plants';
+  if (/lavender/.test(k)) return 'white';
+  if (/baby|gypsophila/.test(k)) return 'white';
+  if (/white/.test(k)) return 'white';
+  return 'mixed';
+};
+
+// Giữ nguyên chữ ký img(keyword, lock) để không phải sửa các chỗ gọi hàm.
+// Mỗi lần gọi sẽ lấy ảnh KẾ TIẾP trong pool của nhóm (xoay vòng theo bộ đếm
+// riêng từng nhóm). Vì module chỉ evaluate một lần theo đúng thứ tự file nên
+// kết quả ổn định giữa các lần reload; gallery 3 ảnh luôn khác nhau và ảnh
+// bìa các sản phẩm tự xoay vòng không bị trùng.
+const _counters = {};
+const img = (keyword, lock = 1) => {
+  const cat = categorize(keyword);
+  if (cat === 'avatar') return `https://i.pravatar.cc/150?img=${(Number(lock) % 70) + 1}`;
+  const pool = POOLS[cat] || POOLS.mixed;
+  _counters[cat] = ((_counters[cat] ?? -1) + 1) % pool.length;
+  return U(pool[_counters[cat]]);
+};
 
 const DEFAULT_CARE =
   'Cắt chéo gốc hoa khoảng 2cm trước khi cắm vào bình nước sạch. ' +
