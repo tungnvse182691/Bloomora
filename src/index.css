@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #faf7f2;
+  --color-cream-dark: #f3ede2;
+  --color-ink: #1e3a2b;
+  --color-ink-soft: #2d4f3c;
+  --color-rose: #c4706b;
+  --color-rose-deep: #a85650;
+  --color-sand: #eaddcb;
+  --color-gold: #c9a227;
+  --font-display: "Playfair Display", serif;
+  --font-body: "Be Vietnam Pro", sans-serif;
+}
+
+:root {
+  --cream: #faf7f2;
+  --ink: #1e3a2b;
+  --rose: #c4706b;
+  --sand: #eaddcb;
+  --gold: #c9a227;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--cream);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: #c4706b;
+  color: #fff;
+}
+
+/* Slim elegant scrollbar */
+::-webkit-scrollbar { width: 10px; height: 8px; }
+::-webkit-scrollbar-track { background: #f3ede2; }
+::-webkit-scrollbar-thumb { background: #c9b896; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #1e3a2b; }
+
+/* ---------- keyframes ---------- */
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(3deg); }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-marquee-left { animation: marquee-left 28s linear infinite; }
+.animate-marquee-right { animation: marquee-right 32s linear infinite; }
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+.animate-spin-slower { animation: spin-slow 14s linear infinite; }
+.animate-pop-in { animation: pop-in 0.35s ease-out; }
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #eee5d3 25%, #f8f3e8 50%, #eee5d3 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.text-stroke {
+  -webkit-text-stroke: 1px #1e3a2b;
+  color: transparent;
+}
+
+/* Hide native cursor when custom cursor is active (desktop only, toggled by JS) */
+body.custom-cursor, body.custom-cursor a, body.custom-cursor button {
+  cursor: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
