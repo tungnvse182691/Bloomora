@@ -3,6 +3,7 @@ import {
   categories, occasions, products, promos, users, orders,
   reviews, blogPosts, banners, provinces,
   subscriptionPlans, subscriptionSizes, subscriptionDurations, subscriptions,
+  DEFAULT_CARE, DEFAULT_DELIVERY,
 } from './db.js';
 
 const wait = () => delay(300 + Math.random() * 500);
@@ -31,6 +32,24 @@ const ADMIN_STATUS_NOTES = {
   delivered: 'Giao hàng thành công',
   cancelled: 'Admin đã hủy đơn hàng',
 };
+
+const slugify = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const uniqueSlug = (base) => {
+  let slug = base || `san-pham-${Date.now()}`;
+  let i = 2;
+  while (products.some((p) => p.slug === slug)) slug = `${base}-${i++}`;
+  return slug;
+};
+
+const DEFAULT_PRODUCT_IMG = 'https://images.unsplash.com/photo-1561181286-d3fee7d55342?w=800&q=80&auto=format&fit=crop';
 
 // ------------------------------------------------------------- products
 function filterProducts(url) {
@@ -498,5 +517,128 @@ export const handlers = [
     }
     sub.status = status;
     return HttpResponse.json({ subscription: sub });
+  }),
+
+  // ---- Products CRUD (admin)
+  http.post('/api/products', async ({ request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const { name, price, oldPrice, stock, categoryId, description, image } = body;
+    if (!name || !String(name).trim()) {
+      return HttpResponse.json({ message: 'Vui lòng nhập tên sản phẩm' }, { status: 400 });
+    }
+    if (!(Number(price) > 0)) {
+      return HttpResponse.json({ message: 'Giá sản phẩm phải lớn hơn 0' }, { status: 400 });
+    }
+    const p = Math.round(Number(price));
+    const now = new Date().toISOString();
+    const product = {
+      id: `p${Date.now()}`,
+      slug: uniqueSlug(slugify(name)),
+      name: String(name).trim(),
+      price: p,
+      oldPrice: Number(oldPrice) > 0 ? Math.round(Number(oldPrice)) : null,
+      categoryId: categoryId || 'c1',
+      occasionIds: [],
+      images: [image || DEFAULT_PRODUCT_IMG],
+      colors: [],
+      sizes: [
+        { name: 'S', price: Math.round(p * 0.8) },
+        { name: 'M', price: p },
+        { name: 'L', price: Math.round(p * 1.25) },
+      ],
+      rating: 0, reviewCount: 0, stock: Math.max(0, Math.round(Number(stock) || 0)),
+      isNew: true, isBestseller: false, tags: ['mới'],
+      description: description || '',
+      care: DEFAULT_CARE, delivery: DEFAULT_DELIVERY,
+      createdAt: now,
+    };
+    products.unshift(product);
+    return HttpResponse.json({ product }, { status: 201 });
+  }),
+
+  http.patch('/api/products/:id', async ({ params, request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const product = products.find((p) => p.id === params.id);
+    if (!product) return HttpResponse.json({ message: 'Không tìm thấy sản phẩm' }, { status: 404 });
+    const { name, price, oldPrice, stock, categoryId, description, image } = body;
+    if (name !== undefined) {
+      if (!String(name).trim()) return HttpResponse.json({ message: 'Tên sản phẩm không được trống' }, { status: 400 });
+      product.name = String(name).trim();
+    }
+    if (price !== undefined) {
+      if (!(Number(price) > 0)) return HttpResponse.json({ message: 'Giá sản phẩm phải lớn hơn 0' }, { status: 400 });
+      const p = Math.round(Number(price));
+      product.price = p;
+      product.sizes = [
+        { name: 'S', price: Math.round(p * 0.8) },
+        { name: 'M', price: p },
+        { name: 'L', price: Math.round(p * 1.25) },
+      ];
+    }
+    if (oldPrice !== undefined) product.oldPrice = Number(oldPrice) > 0 ? Math.round(Number(oldPrice)) : null;
+    if (stock !== undefined) product.stock = Math.max(0, Math.round(Number(stock) || 0));
+    if (categoryId !== undefined) product.categoryId = categoryId;
+    if (description !== undefined) product.description = description;
+    if (image !== undefined && image) product.images = [image, ...product.images.slice(1)];
+    return HttpResponse.json({ product });
+  }),
+
+  http.delete('/api/products/:id', async ({ params }) => {
+    await wait();
+    const idx = products.findIndex((p) => p.id === params.id);
+    if (idx === -1) return HttpResponse.json({ message: 'Không tìm thấy sản phẩm' }, { status: 404 });
+    const [removed] = products.splice(idx, 1);
+    return HttpResponse.json({ ok: true, id: removed.id });
+  }),
+
+  // ---- Users (admin)
+  http.get('/api/admin/users', async () => {
+    await wait();
+    const items = users.map((u) => ({
+      id: u.id, name: u.name, email: u.email, phone: u.phone,
+      avatar: u.avatar, role: u.role || 'customer',
+      addresses: (u.addresses || []).length,
+      orders: orders.filter((o) => o.userId === u.id).length,
+    }));
+    return HttpResponse.json({ items });
+  }),
+
+  http.patch('/api/admin/users/:id', async ({ params, request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const u = users.find((x) => x.id === params.id);
+    if (!u) return HttpResponse.json({ message: 'Không tìm thấy người dùng' }, { status: 404 });
+    const { name, phone, role } = body;
+    if (name !== undefined) u.name = String(name).trim() || u.name;
+    if (phone !== undefined) u.phone = String(phone).trim();
+    if (role !== undefined) {
+      if (!['admin', 'customer'].includes(role)) {
+        return HttpResponse.json({ message: 'Vai trò không hợp lệ' }, { status: 400 });
+      }
+      if (u.role === 'admin' && role !== 'admin' && users.filter((x) => x.role === 'admin').length <= 1) {
+        return HttpResponse.json({ message: 'Phải giữ lại ít nhất một quản trị viên' }, { status: 400 });
+      }
+      u.role = role;
+    }
+    const { password, ...safe } = u;
+    return HttpResponse.json({ user: { ...safe, orders: orders.filter((o) => o.userId === u.id).length } });
+  }),
+
+  http.delete('/api/admin/users/:id', async ({ params, request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const idx = users.findIndex((x) => x.id === params.id);
+    if (idx === -1) return HttpResponse.json({ message: 'Không tìm thấy người dùng' }, { status: 404 });
+    const target = users[idx];
+    if (target.id === body.requesterId) {
+      return HttpResponse.json({ message: 'Không thể xóa chính tài khoản của mình' }, { status: 400 });
+    }
+    if (target.role === 'admin' && users.filter((x) => x.role === 'admin').length <= 1) {
+      return HttpResponse.json({ message: 'Không thể xóa quản trị viên cuối cùng' }, { status: 400 });
+    }
+    users.splice(idx, 1);
+    return HttpResponse.json({ ok: true, id: target.id });
   }),
 ];
