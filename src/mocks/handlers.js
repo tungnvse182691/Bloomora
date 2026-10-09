@@ -24,6 +24,14 @@ const productIdNum = (id) => parseInt(String(id).replace(/\D/g, ''), 10) || 0;
 
 const DELIVERY_SLOTS = ['08:00 - 10:00', '10:00 - 12:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
 
+const ORDER_FLOW = ['pending', 'confirmed', 'shipping', 'delivered'];
+const ADMIN_STATUS_NOTES = {
+  confirmed: 'Admin đã duyệt đơn hàng',
+  shipping: 'Đơn hàng đang được giao',
+  delivered: 'Giao hàng thành công',
+  cancelled: 'Admin đã hủy đơn hàng',
+};
+
 // ------------------------------------------------------------- products
 function filterProducts(url) {
   const q = url.searchParams;
@@ -251,6 +259,91 @@ export const handlers = [
     order.status = 'cancelled';
     order.timeline.push({ status: 'cancelled', at: new Date().toISOString(), note: 'Khách hàng yêu cầu hủy đơn' });
     return HttpResponse.json({ order });
+  }),
+
+  // ------------------------------------------------------------- admin
+  http.patch('/api/orders/:code/status', async ({ params, request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const order = orders.find((o) => o.code === params.code);
+    if (!order) return HttpResponse.json({ message: 'Không tìm thấy đơn hàng' }, { status: 404 });
+    const { status } = body;
+    const valid = ['confirmed', 'shipping', 'delivered', 'cancelled'];
+    if (!valid.includes(status)) {
+      return HttpResponse.json({ message: 'Trạng thái không hợp lệ' }, { status: 400 });
+    }
+    if (['delivered', 'cancelled'].includes(order.status)) {
+      return HttpResponse.json({ message: 'Đơn hàng đã kết thúc, không thể đổi trạng thái' }, { status: 400 });
+    }
+    // Chỉ cho đi tiếp theo luồng hoặc hủy (không cho quay ngược)
+    const curIdx = ORDER_FLOW.indexOf(order.status);
+    const nextIdx = ORDER_FLOW.indexOf(status);
+    if (status !== 'cancelled' && (nextIdx === -1 || nextIdx < curIdx)) {
+      return HttpResponse.json({ message: 'Không thể chuyển về trạng thái trước đó' }, { status: 400 });
+    }
+    order.status = status;
+    order.timeline.push({ status, at: new Date().toISOString(), note: ADMIN_STATUS_NOTES[status] || '' });
+    return HttpResponse.json({ order });
+  }),
+
+  http.get('/api/admin/stats', async () => {
+    await wait();
+    const delivered = orders.filter((o) => o.status === 'delivered');
+    const revenue = delivered.reduce((sum, o) => sum + (o.total || 0), 0);
+
+    // Doanh thu 14 ngày gần nhất
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const dayRevenue = delivered
+        .filter((o) => (o.createdAt || '').slice(0, 10) === key)
+        .reduce((sum, o) => sum + (o.total || 0), 0);
+      days.push({ date: key, label: `${d.getDate()}/${d.getMonth() + 1}`, revenue: dayRevenue });
+    }
+
+    const ordersByStatus = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'].map((s) => ({
+      status: s,
+      count: orders.filter((o) => o.status === s).length,
+    }));
+
+    // Top sản phẩm bán chạy (theo số lượng, chỉ tính đơn chưa hủy)
+    const qtyMap = {};
+    orders
+      .filter((o) => o.status !== 'cancelled')
+      .forEach((o) => (o.items || []).forEach((it) => {
+        const k = it.productId;
+        qtyMap[k] = qtyMap[k] || { name: it.name, image: it.image, qty: 0, revenue: 0 };
+        qtyMap[k].qty += Number(it.qty) || 0;
+        qtyMap[k].revenue += (Number(it.price) || 0) * (Number(it.qty) || 0);
+      }));
+    const topProducts = Object.values(qtyMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+    const lowStock = products
+      .filter((p) => (p.stock ?? 0) < 10)
+      .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
+      .slice(0, 6)
+      .map((p) => ({ id: p.id, name: p.name, image: p.images?.[0], stock: p.stock ?? 0, slug: p.slug }));
+
+    const recentOrders = [...orders]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+
+    return HttpResponse.json({
+      totals: {
+        revenue,
+        orders: orders.length,
+        products: products.length,
+        customers: users.length,
+        pendingOrders: orders.filter((o) => o.status === 'pending').length,
+      },
+      revenueByDay: days,
+      ordersByStatus,
+      topProducts,
+      lowStock,
+      recentOrders,
+    });
   }),
 
   // ---- Auth

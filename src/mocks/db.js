@@ -487,7 +487,7 @@ export const promos = [
 export const users = [
   {
     id: 'u1', name: 'Nguyễn Thị Demo', email: 'demo@bloomora.vn', password: 'demo123',
-    phone: '0901234567', avatar: img('woman,portrait', 51),
+    phone: '0901234567', role: 'admin', avatar: img('woman,portrait', 51),
     addresses: [
       { id: 'a1', name: 'Nguyễn Thị Demo', phone: '0901234567', address: '123 Nguyễn Huệ', ward: 'Phường Bến Nghé', district: 'Quận 1', city: 'TP. Hồ Chí Minh', isDefault: true },
       { id: 'a2', name: 'Nguyễn Thị Demo', phone: '0901234567', address: '456 Lê Lợi', ward: 'Phường Bến Thành', district: 'Quận 1', city: 'TP. Hồ Chí Minh', isDefault: false },
@@ -587,6 +587,37 @@ export const orders = [
     id: 'o110', code: 'BM-000192', items: [orderItem('p19', 1)],
     subtotal: 650000, discount: 97500, shippingFee: 0, status: 'pending', paymentMethod: 'bank',
     deliveryDate: '2026-10-11', deliverySlot: '15:00 - 17:00', createdAt: '2026-10-09', note: 'Tặng kèm thiệp kỷ niệm 2 năm',
+  }),
+  // Đơn bổ sung rải đều 14 ngày qua để dashboard demo sinh động
+  mkOrder({
+    id: 'o111', code: 'BM-000201', items: [orderItem('p3', 1), orderItem('p8', 1)],
+    subtotal: 890000, discount: 0, shippingFee: 0, status: 'delivered', paymentMethod: 'cod',
+    deliveryDate: '2026-09-28', deliverySlot: '10:00 - 12:00', createdAt: '2026-09-27',
+  }),
+  mkOrder({
+    id: 'o112', code: 'BM-000205', items: [orderItem('p5', 2)],
+    subtotal: 1180000, discount: 118000, shippingFee: 0, status: 'delivered', paymentMethod: 'bank',
+    deliveryDate: '2026-09-30', deliverySlot: '13:00 - 15:00', createdAt: '2026-09-29',
+  }),
+  mkOrder({
+    id: 'o113', code: 'BM-000210', items: [orderItem('p12', 1)],
+    subtotal: 450000, discount: 0, shippingFee: 25000, status: 'delivered', paymentMethod: 'wallet',
+    deliveryDate: '2026-10-01', deliverySlot: '08:00 - 10:00', createdAt: '2026-09-30', note: 'Sinh nhật mẹ',
+  }),
+  mkOrder({
+    id: 'o114', code: 'BM-000214', items: [orderItem('p7', 1), orderItem('p22', 1)],
+    subtotal: 1320000, discount: 0, shippingFee: 0, status: 'delivered', paymentMethod: 'cod',
+    deliveryDate: '2026-10-03', deliverySlot: '15:00 - 17:00', createdAt: '2026-10-02',
+  }),
+  mkOrder({
+    id: 'o115', code: 'BM-000218', items: [orderItem('p15', 3)],
+    subtotal: 1740000, discount: 174000, shippingFee: 0, status: 'delivered', paymentMethod: 'bank',
+    deliveryDate: '2026-10-05', deliverySlot: '10:00 - 12:00', createdAt: '2026-10-04', note: 'Trang trí sự kiện công ty',
+  }),
+  mkOrder({
+    id: 'o116', code: 'BM-000221', items: [orderItem('p2', 1)],
+    subtotal: 520000, discount: 0, shippingFee: 0, status: 'delivered', paymentMethod: 'cod',
+    deliveryDate: '2026-10-07', deliverySlot: '17:00 - 19:00', createdAt: '2026-10-06',
   }),
 ];
 
