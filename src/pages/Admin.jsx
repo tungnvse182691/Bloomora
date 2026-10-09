@@ -15,9 +15,17 @@ import WarningAmber from '@mui/icons-material/WarningAmber';
 import Close from '@mui/icons-material/Close';
 import Search from '@mui/icons-material/Search';
 import Lock from '@mui/icons-material/Lock';
+import Add from '@mui/icons-material/Add';
+import Edit from '@mui/icons-material/Edit';
+import Delete from '@mui/icons-material/Delete';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { getAdminStats, getAllOrders, updateOrderStatus } from '../services/admin.service';
+import { getProducts, getCategories } from '../services/product.service';
+import {
+  getAdminStats, getAllOrders, updateOrderStatus,
+  getAdminUsers, updateUser, deleteUser,
+  createProduct, updateProduct, deleteProduct,
+} from '../services/admin.service';
 import { ORDER_STATUS_LABEL } from '../utils/constants';
 import { formatVND, formatDateTime } from '../utils/format';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -57,7 +65,11 @@ const NEXT_ACTIONS = {
 const TABS = [
   { id: 'overview', label: 'Tổng quan', icon: <DashboardIcon /> },
   { id: 'orders', label: 'Đơn hàng', icon: <ReceiptLong /> },
+  { id: 'products', label: 'Sản phẩm', icon: <Inventory2 /> },
+  { id: 'users', label: 'Người dùng', icon: <People /> },
 ];
+
+const ROLE_LABEL = { admin: 'Quản trị viên', customer: 'Khách hàng' };
 
 export default function Admin() {
   useDocumentTitle('Quản trị — Bloomora', { noindex: true });
@@ -66,11 +78,15 @@ export default function Admin() {
   const [tab, setTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [productModal, setProductModal] = useState(null); // null | { mode: 'add' } | { mode: 'edit', product }
 
   const isAdmin = user?.role === 'admin';
 
@@ -82,9 +98,14 @@ export default function Admin() {
     (async () => {
       setLoading(true);
       try {
-        const [s, o] = await Promise.all([getAdminStats(), getAllOrders()]);
+        const [s, o, p, c, u] = await Promise.all([
+          getAdminStats(), getAllOrders(), getProducts({ limit: 200 }), getCategories(), getAdminUsers(),
+        ]);
         setStats(s);
         setOrders(o.items || []);
+        setProducts(p.items || []);
+        setCategories(c.items || []);
+        setUsersList(u.items || []);
       } catch {
         toast.error('Không tải được dữ liệu quản trị');
       } finally {
@@ -95,9 +116,13 @@ export default function Admin() {
 
   const refresh = async () => {
     try {
-      const [s, o] = await Promise.all([getAdminStats(), getAllOrders()]);
+      const [s, o, p, u] = await Promise.all([
+        getAdminStats(), getAllOrders(), getProducts({ limit: 200 }), getAdminUsers(),
+      ]);
       setStats(s);
       setOrders(o.items || []);
+      setProducts(p.items || []);
+      setUsersList(u.items || []);
     } catch { /* ignore */ }
   };
 
@@ -135,6 +160,62 @@ export default function Admin() {
       .map((d) => ({ name: ORDER_STATUS_LABEL[d.status], value: d.count, status: d.status })),
     [stats],
   );
+
+  // ---- Products CRUD ----
+  const handleSaveProduct = async (data) => {
+    try {
+      if (productModal?.mode === 'edit') {
+        const { product } = await updateProduct(productModal.product.id, data);
+        setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
+        toast.success(`Đã cập nhật “${product.name}”`);
+      } else {
+        const { product } = await createProduct(data);
+        setProducts((prev) => [product, ...prev]);
+        await refresh();
+        toast.success(`Đã thêm “${product.name}”`);
+      }
+      setProductModal(null);
+    } catch (e) {
+      toast.error(e.message || 'Lưu thất bại');
+    }
+  };
+
+  const handleDeleteProduct = async (p) => {
+    if (!window.confirm(`Xóa sản phẩm “${p.name}”? Hành động này không thể hoàn tác.`)) return;
+    try {
+      await deleteProduct(p.id);
+      setProducts((prev) => prev.filter((x) => x.id !== p.id));
+      await refresh();
+      toast.success('Đã xóa sản phẩm');
+    } catch (e) {
+      toast.error(e.message || 'Xóa thất bại');
+    }
+  };
+
+  // ---- Users ----
+  const handleUserRole = async (u, role) => {
+    if (u.role === role) return;
+    if (!window.confirm(`Đổi vai trò của ${u.name} thành “${ROLE_LABEL[role]}”?`)) return;
+    try {
+      const { user: updated } = await updateUser(u.id, { role });
+      setUsersList((prev) => prev.map((x) => (x.id === u.id ? { ...x, role: updated.role } : x)));
+      toast.success('Đã cập nhật vai trò');
+    } catch (e) {
+      toast.error(e.message || 'Cập nhật thất bại');
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (!window.confirm(`Xóa tài khoản ${u.name} (${u.email})? Hành động này không thể hoàn tác.`)) return;
+    try {
+      await deleteUser(u.id, user?.id);
+      setUsersList((prev) => prev.filter((x) => x.id !== u.id));
+      await refresh();
+      toast.success('Đã xóa người dùng');
+    } catch (e) {
+      toast.error(e.message || 'Xóa thất bại');
+    }
+  };
 
   // ---- Không có quyền ----
   if (!loading && !isAdmin) {
@@ -196,7 +277,7 @@ export default function Admin() {
               <p className="text-sm text-ink/60">Đang tải dữ liệu...</p>
             ) : tab === 'overview' ? (
               <Overview stats={stats} pieData={pieData} />
-            ) : (
+            ) : tab === 'orders' ? (
               <OrdersTab
                 orders={filteredOrders}
                 search={search}
@@ -204,6 +285,21 @@ export default function Admin() {
                 statusFilter={statusFilter}
                 setStatusFilter={setStatusFilter}
                 onSelect={setSelected}
+              />
+            ) : tab === 'products' ? (
+              <ProductsTab
+                products={products}
+                categories={categories}
+                onAdd={() => setProductModal({ mode: 'add' })}
+                onEdit={(product) => setProductModal({ mode: 'edit', product })}
+                onDelete={handleDeleteProduct}
+              />
+            ) : (
+              <UsersTab
+                users={usersList}
+                currentUserId={user?.id}
+                onRoleChange={handleUserRole}
+                onDelete={handleDeleteUser}
               />
             )}
           </div>
@@ -217,6 +313,17 @@ export default function Admin() {
           onClose={() => setSelected(null)}
           onStatus={handleStatus}
           updating={updating}
+        />
+      )}
+
+      {/* ---- Modal thêm/sửa sản phẩm ---- */}
+      {productModal && (
+        <ProductModal
+          key={productModal.mode === 'edit' ? productModal.product.id : 'new'}
+          initial={productModal.mode === 'edit' ? productModal.product : null}
+          categories={categories}
+          onClose={() => setProductModal(null)}
+          onSave={handleSaveProduct}
         />
       )}
     </div>
@@ -520,6 +627,338 @@ function OrderModal({ order, onClose, onStatus, updating }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ================= Tab sản phẩm ================= */
+function ProductsTab({ products, categories, onAdd, onEdit, onDelete }) {
+  const [q, setQ] = useState('');
+  const [cat, setCat] = useState('all');
+  const catName = useMemo(() => Object.fromEntries((categories || []).map((c) => [c.id, c.name])), [categories]);
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return products.filter((p) => {
+      const okCat = cat === 'all' || p.categoryId === cat;
+      const okQ = !s || p.name.toLowerCase().includes(s) || p.slug.includes(s);
+      return okCat && okQ;
+    });
+  }, [products, q, cat]);
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" fontSize="small" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Tìm sản phẩm..."
+            className="w-full rounded-xl border border-sand bg-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-rose focus:ring-2 focus:ring-rose/25"
+          />
+        </div>
+        <select
+          value={cat}
+          onChange={(e) => setCat(e.target.value)}
+          className="rounded-xl border border-sand bg-white px-4 py-2.5 text-sm outline-none focus:border-rose"
+        >
+          <option value="all">Tất cả danh mục</option>
+          {(categories || []).map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-cream transition hover:bg-ink-soft cursor-pointer"
+        >
+          <Add fontSize="small" /> Thêm sản phẩm
+        </button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState title="Không có sản phẩm" description="Thử đổi từ khóa tìm kiếm hoặc thêm sản phẩm mới." />
+      ) : (
+        <div className="bg-white rounded-2xl border border-sand shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[760px]">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-ink/50 border-b border-sand">
+                  <th className="px-5 py-3.5 font-semibold">Sản phẩm</th>
+                  <th className="px-5 py-3.5 font-semibold">Danh mục</th>
+                  <th className="px-5 py-3.5 font-semibold text-right">Giá</th>
+                  <th className="px-5 py-3.5 font-semibold text-center">Tồn kho</th>
+                  <th className="px-5 py-3.5 font-semibold text-center">Đánh giá</th>
+                  <th className="px-5 py-3.5 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id} className="border-b border-sand/60 last:border-0 hover:bg-cream/60 transition">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={p.images?.[0]} alt={p.name} className="w-11 h-11 rounded-xl object-cover" loading="lazy" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-ink truncate max-w-[240px]">{p.name}</p>
+                          <p className="text-xs text-ink/40">/{p.slug}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-ink/70">{catName[p.categoryId] || p.categoryId}</td>
+                    <td className="px-5 py-3 text-right">
+                      <span className="font-semibold">{formatVND(p.price)}</span>
+                      {p.oldPrice > p.price && (
+                        <span className="block text-xs text-ink/40 line-through">{formatVND(p.oldPrice)}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${
+                        (p.stock ?? 0) <= 0 ? 'bg-red-100 text-red-700'
+                        : (p.stock ?? 0) < 10 ? 'bg-amber-100 text-amber-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {p.stock ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center text-ink/70">
+                      {p.rating ? `${Number(p.rating).toFixed(1)} ★` : '—'}
+                      <span className="block text-xs text-ink/40">{p.reviewCount || 0} đánh giá</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => onEdit(p)}
+                          aria-label="Sửa"
+                          className="p-2 rounded-lg border border-sand text-ink/70 transition hover:border-ink hover:text-ink cursor-pointer"
+                        >
+                          <Edit fontSize="small" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(p)}
+                          aria-label="Xóa"
+                          className="p-2 rounded-lg border border-red-200 text-red-500 transition hover:bg-red-50 cursor-pointer"
+                        >
+                          <Delete fontSize="small" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================= Modal thêm/sửa sản phẩm ================= */
+const inputCls =
+  'w-full rounded-xl border border-sand bg-white px-4 py-2.5 text-sm text-ink placeholder:text-ink/40 outline-none transition focus:border-rose focus:ring-2 focus:ring-rose/25';
+
+function ProductModal({ initial, categories, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: initial?.name || '',
+    price: initial?.price || '',
+    oldPrice: initial?.oldPrice || '',
+    stock: initial?.stock ?? 20,
+    categoryId: initial?.categoryId || 'c1',
+    description: initial?.description || '',
+    image: initial?.images?.[0] || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave({
+        name: form.name.trim(),
+        price: Number(form.price),
+        oldPrice: form.oldPrice === '' ? null : Number(form.oldPrice),
+        stock: Number(form.stock),
+        categoryId: form.categoryId,
+        description: form.description.trim(),
+        ...(form.image.trim() ? { image: form.image.trim() } : {}),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-ink/60" onClick={onClose} />
+      <div className="relative bg-cream w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl">
+        <div className="sticky top-0 bg-cream/95 backdrop-blur px-6 py-4 flex items-center justify-between border-b border-sand z-10">
+          <h2 className="font-display text-xl font-bold text-ink">
+            {initial ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
+          </h2>
+          <button onClick={onClose} aria-label="Đóng" className="p-2 rounded-full hover:bg-sand/60 transition cursor-pointer">
+            <Close />
+          </button>
+        </div>
+        <form onSubmit={submit} className="p-6 grid gap-4">
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Tên sản phẩm *</label>
+            <input value={form.name} onChange={set('name')} placeholder="VD: Bó Hồng Kem Sang Trọng" className={inputCls} required />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">Giá bán (₫) *</label>
+              <input type="number" min="1" value={form.price} onChange={set('price')} placeholder="450000" className={inputCls} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">Giá gốc (₫)</label>
+              <input type="number" min="0" value={form.oldPrice} onChange={set('oldPrice')} placeholder="Để trống nếu không giảm" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">Tồn kho</label>
+              <input type="number" min="0" value={form.stock} onChange={set('stock')} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Danh mục</label>
+            <select value={form.categoryId} onChange={set('categoryId')} className={inputCls}>
+              {(categories || []).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Link ảnh</label>
+            <div className="flex gap-3 items-start">
+              <input value={form.image} onChange={set('image')} placeholder="https://... (để trống dùng ảnh mặc định)" className={`${inputCls} flex-1`} />
+              {form.image.trim() && (
+                <img src={form.image.trim()} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-sand" />
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Mô tả</label>
+            <textarea value={form.description} onChange={set('description')} rows={4} placeholder="Mô tả chi tiết sản phẩm..." className={inputCls} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full px-6 py-2.5 text-sm font-semibold border border-sand text-ink transition hover:border-ink cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-full px-6 py-2.5 text-sm font-semibold bg-ink text-cream transition hover:bg-ink-soft disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? 'Đang lưu...' : initial ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ================= Tab người dùng ================= */
+function UsersTab({ users, currentUserId, onRoleChange, onDelete }) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return (users || []).filter((u) =>
+      !s || u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.phone || '').includes(s),
+    );
+  }, [users, q]);
+
+  return (
+    <div>
+      <div className="relative max-w-sm mb-5">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" fontSize="small" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Tìm tên, email, SĐT..."
+          className="w-full rounded-xl border border-sand bg-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-rose focus:ring-2 focus:ring-rose/25"
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState title="Không có người dùng" description="Thử đổi từ khóa tìm kiếm." />
+      ) : (
+        <div className="bg-white rounded-2xl border border-sand shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[760px]">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-ink/50 border-b border-sand">
+                  <th className="px-5 py-3.5 font-semibold">Người dùng</th>
+                  <th className="px-5 py-3.5 font-semibold">Liên hệ</th>
+                  <th className="px-5 py-3.5 font-semibold text-center">Đơn hàng</th>
+                  <th className="px-5 py-3.5 font-semibold">Vai trò</th>
+                  <th className="px-5 py-3.5 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u.id} className="border-b border-sand/60 last:border-0 hover:bg-cream/60 transition">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        {u.avatar ? (
+                          <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover" loading="lazy" />
+                        ) : (
+                          <span className="w-10 h-10 rounded-full bg-sand flex items-center justify-center font-bold text-ink/60">
+                            {u.name.charAt(0)}
+                          </span>
+                        )}
+                        <div>
+                          <p className="font-medium text-ink">
+                            {u.name}
+                            {u.id === currentUserId && (
+                              <span className="ml-2 text-[10px] font-bold uppercase bg-ink text-cream px-2 py-0.5 rounded-full">Bạn</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-ink/50">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-ink/70">
+                      {u.phone || '—'}
+                      <span className="block text-xs text-ink/40">{u.addresses} địa chỉ đã lưu</span>
+                    </td>
+                    <td className="px-5 py-3 text-center font-semibold">{u.orders}</td>
+                    <td className="px-5 py-3">
+                      <select
+                        value={u.role}
+                        onChange={(e) => onRoleChange(u, e.target.value)}
+                        disabled={u.id === currentUserId}
+                        className={`rounded-lg border text-xs font-semibold px-2.5 py-1.5 outline-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+                          u.role === 'admin' ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-sand bg-white text-ink/70'
+                        }`}
+                        title={u.id === currentUserId ? 'Không thể đổi vai trò của chính mình' : 'Đổi vai trò'}
+                      >
+                        <option value="customer">{ROLE_LABEL.customer}</option>
+                        <option value="admin">{ROLE_LABEL.admin}</option>
+                      </select>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={() => onDelete(u)}
+                        disabled={u.id === currentUserId}
+                        aria-label="Xóa người dùng"
+                        title={u.id === currentUserId ? 'Không thể xóa chính mình' : 'Xóa người dùng'}
+                        className="p-2 rounded-lg border border-red-200 text-red-500 transition hover:bg-red-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Delete fontSize="small" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
