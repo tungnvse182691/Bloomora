@@ -49,7 +49,7 @@ const uniqueSlug = (base) => {
   return slug;
 };
 
-const DEFAULT_PRODUCT_IMG = 'https://images.unsplash.com/photo-1561181286-d3fee7d55342?w=800&q=80&auto=format&fit=crop';
+const DEFAULT_PRODUCT_IMG = 'https://images.unsplash.com/photo-1457089328109-e5d9bd499191?w=800&q=80&auto=format&fit=crop';
 
 // ------------------------------------------------------------- products
 function filterProducts(url) {

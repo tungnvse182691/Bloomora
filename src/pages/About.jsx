@@ -56,7 +56,7 @@ export default function About() {
         <div className="grid items-center gap-10 md:grid-cols-2">
           <Reveal>
             <img
-              src="https://images.unsplash.com/photo-1561181286-d3fee7d55342?auto=format&fit=crop&w=900&q=80"
+              src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=80"
               alt="Tiệm hoa Bloomora"
               className="aspect-[4/3] w-full rounded-3xl object-cover shadow-xl shadow-ink/10"
               loading="lazy"

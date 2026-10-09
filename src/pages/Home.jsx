@@ -368,7 +368,7 @@ export default function Home() {
         <div className="grid md:grid-cols-2 gap-10 items-center bg-white rounded-[2rem] border border-sand overflow-hidden shadow-xl">
           <div className="h-72 md:h-full min-h-[320px]">
             <img
-              src="https://images.unsplash.com/photo-1561181286-d3fee7d55342?w=1200&q=80&auto=format&fit=crop"
+              src="https://images.unsplash.com/photo-1457089328109-e5d9bd499191?w=1200&q=80&auto=format&fit=crop"
               alt="Gói hoa tươi định kỳ Bloomora"
               loading="lazy"
               className="w-full h-full object-cover"
