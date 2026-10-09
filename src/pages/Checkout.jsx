@@ -298,7 +298,7 @@ export default function Checkout() {
 
                 {paymentMethod === 'bank' && (
                   <div className="mt-5 rounded-2xl bg-cream-dark p-6 flex flex-col sm:flex-row items-center gap-5 animate-pop-in">
-                    <img src="https://loremflickr.com/200/200/qr?lock=1" alt="Mã QR chuyển khoản" className="w-40 h-40 rounded-2xl bg-white" />
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=BLOOMORA" alt="Mã QR chuyển khoản" className="w-40 h-40 rounded-2xl bg-white" />
                     <div className="text-sm text-ink-soft space-y-1.5">
                       <p className="font-semibold text-ink">Thông tin chuyển khoản</p>
                       <p>Ngân hàng: <strong className="text-ink">Vietcombank</strong></p>

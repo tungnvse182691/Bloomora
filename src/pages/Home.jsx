@@ -163,7 +163,7 @@ export default function Home() {
       <section ref={heroRef} className="relative h-screen min-h-[640px] overflow-hidden">
         <div ref={bgRef} className="absolute inset-0 -bottom-[20%]">
           <img
-            src="https://loremflickr.com/1920/1080/flowers?lock=100"
+            src="https://images.unsplash.com/photo-1457089328109-e5d9bd499191?w=1920&q=80&auto=format&fit=crop"
             alt="Hoa tươi Bloomora"
             className="w-full h-full object-cover"
           />
@@ -329,7 +329,7 @@ export default function Home() {
       <section className="relative overflow-hidden">
         <div ref={promoBgRef} className="absolute inset-0 -top-[15%] -bottom-[15%]">
           <img
-            src="https://loremflickr.com/1920/800/flowers,pink?lock=200"
+            src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1920&q=80&auto=format&fit=crop"
             alt="Ưu đãi hoa tươi"
             loading="lazy"
             className="w-full h-full object-cover"

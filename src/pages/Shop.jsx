@@ -147,7 +147,7 @@ export default function Shop() {
       {/* Banner */}
       <div className="relative overflow-hidden">
         <img
-          src="https://loremflickr.com/1920/420/flowers,shop?lock=300"
+          src="https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=1920&q=80&auto=format&fit=crop"
           alt="Cửa hàng hoa Bloomora"
           className="w-full h-56 md:h-72 object-cover"
         />
