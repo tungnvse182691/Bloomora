@@ -16,8 +16,10 @@ const shopLinks = [
 ];
 
 const supportLinks = [
+  { label: 'Câu hỏi thường gặp', to: '/faq' },
   { label: 'Chính sách giao hàng', to: '/chinh-sach-giao-hang' },
   { label: 'Đổi trả & hoàn tiền', to: '/doi-tra' },
+  { label: 'Gói hoa định kỳ', to: '/subscription' },
   { label: 'Hướng dẫn chăm sóc hoa', to: '/blog' },
   { label: 'Liên hệ', to: '/contact' },
 ];

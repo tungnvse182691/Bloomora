@@ -75,6 +75,22 @@ export const QuickViewModal = () => {
     close();
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+    const size = product.sizes?.[sizeIdx] || { name: 'M', price: product.price };
+    addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.images?.[0],
+      price: size.price,
+      size: size.name,
+      qty,
+    });
+    close();
+    navigate('/checkout');
+  };
+
   const price = product?.sizes?.[sizeIdx]?.price ?? product?.price ?? 0;
 
   return (
@@ -163,6 +179,9 @@ export const QuickViewModal = () => {
                       Thêm vào giỏ
                     </Button>
                   </div>
+                  <Button variant="outline" className="w-full mt-3" onClick={handleBuyNow}>
+                    Mua ngay
+                  </Button>
 
                   <button
                     onClick={() => {

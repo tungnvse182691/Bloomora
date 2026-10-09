@@ -23,10 +23,11 @@ import { ProductCard } from '../components/product/ProductCard';
 import { Reveal } from '../components/effects/Reveal';
 import { MagneticButton } from '../components/effects/MagneticButton';
 import { triggerFlyToCart } from '../components/effects/FlyToCartLayer';
-import { getProduct, getReviews, addReview } from '../services/product.service';
+import { getProduct, getProducts, getReviews, addReview } from '../services/product.service';
 import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWishlistStore } from '../store/useWishlistStore';
+import { useRecentStore } from '../store/useRecentStore';
 import { formatVND, formatDate } from '../utils/format';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
@@ -43,6 +44,9 @@ export default function ProductDetail() {
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
+  const [recent, setRecent] = useState([]);
+  const pushRecent = useRecentStore((s) => s.push);
+  const recentSlugs = useRecentStore((s) => s.slugs);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,6 +90,7 @@ export default function ProductDetail() {
         if (cancelled) return;
         setProduct(p);
         setRelated(r || []);
+        pushRecent(slug);
         setSize(p.sizes?.[1]?.name || p.sizes?.[0]?.name || 'M');
         setColor(p.colors?.[0] || '');
         setActiveImg(0);
@@ -146,6 +151,43 @@ export default function ProductDetail() {
     if (e?.clientX != null) triggerFlyToCart(product.images?.[0], e.clientX, e.clientY);
     toast.success(`Đã thêm “${product.name}” vào giỏ hàng`);
   };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.images?.[0],
+      price: finalPrice,
+      size,
+      qty,
+      giftWrap,
+      note: note.trim(),
+    });
+    navigate('/checkout');
+  };
+
+  // ---- Sản phẩm đã xem gần đây (trừ sản phẩm hiện tại) ----
+  useEffect(() => {
+    const others = recentSlugs.filter((s) => s !== slug).slice(0, 8);
+    if (!others.length) {
+      setRecent([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { items } = (await getProducts({ limit: 100 })) || {};
+        if (cancelled) return;
+        const map = new Map((items || []).map((p) => [p.slug, p]));
+        setRecent(others.map((s) => map.get(s)).filter(Boolean));
+      } catch {
+        if (!cancelled) setRecent([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [recentSlugs, slug]);
 
   const scrollToReviews = () => {
     setTab('reviews');
@@ -352,6 +394,11 @@ export default function ProductDetail() {
                 {wished ? <FavoriteIcon /> : <FavoriteBorderIcon />}
               </button>
             </div>
+            <div className="mt-3">
+              <Button size="lg" variant="outline" className="w-full" onClick={handleBuyNow}>
+                Mua ngay · {formatVND(finalPrice * qty)}
+              </Button>
+            </div>
 
             <div className="mt-6 rounded-2xl bg-sand/60 p-4 text-sm text-ink-soft space-y-1.5">
               <p>🚚 Giao hoa trong 2–4h tại nội thành · kèm thiệp viết tay miễn phí</p>
@@ -464,6 +511,32 @@ export default function ProductDetail() {
               className="!pb-12 mt-8"
             >
               {related.map((p) => (
+                <SwiperSlide key={p.id} className="!h-auto">
+                  <ProductCard product={p} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
+        {/* ---- Đã xem gần đây ---- */}
+        {recent.length > 0 && (
+          <div className="mt-8">
+            <Reveal>
+              <SectionHeading eyebrow="Lịch sử" title="Đã xem gần đây" align="left" />
+            </Reveal>
+            <Swiper
+              modules={[Pagination]}
+              pagination={{ clickable: true }}
+              spaceBetween={20}
+              slidesPerView={1.4}
+              breakpoints={{
+                640: { slidesPerView: 2.4 },
+                1024: { slidesPerView: 4 },
+              }}
+              className="!pb-12 mt-8"
+            >
+              {recent.map((p) => (
                 <SwiperSlide key={p.id} className="!h-auto">
                   <ProductCard product={p} />
                 </SwiperSlide>

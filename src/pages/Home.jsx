@@ -9,6 +9,7 @@ import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import SpaIcon from '@mui/icons-material/Spa';
 import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
@@ -359,6 +360,42 @@ export default function Home() {
               </MagneticButton>
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ================= GÓI HOA ĐỊNH KỲ ================= */}
+      <section className="max-w-7xl mx-auto px-6 py-20 md:py-28">
+        <div className="grid md:grid-cols-2 gap-10 items-center bg-white rounded-[2rem] border border-sand overflow-hidden shadow-xl">
+          <div className="h-72 md:h-full min-h-[320px]">
+            <img
+              src="https://images.unsplash.com/photo-1561181286-d3fee7d55342?w=1200&q=80&auto=format&fit=crop"
+              alt="Gói hoa tươi định kỳ Bloomora"
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="p-8 md:p-12">
+            <Reveal>
+              <p className="text-rose text-xs font-semibold uppercase tracking-[0.35em] mb-4">Bloomora Subscription</p>
+              <h2 className="font-display text-ink text-3xl md:text-5xl leading-tight">
+                Hoa tươi mỗi tuần,<br />không cần nhớ đặt
+              </h2>
+              <p className="mt-4 text-ink/70">
+                Đăng ký gói hoa định kỳ — chúng tôi tuyển hoa đẹp nhất mỗi kỳ và giao đúng hẹn.
+                Giảm đến 25%, miễn phí giao hàng, tạm dừng linh hoạt bất cứ lúc nào.
+              </p>
+              <ul className="mt-6 space-y-2 text-sm text-ink/70">
+                <li className="flex items-center gap-2"><CheckCircleIcon className="text-leaf" fontSize="small" /> Giao hoa tuần / 2 tuần / hàng tháng</li>
+                <li className="flex items-center gap-2"><CheckCircleIcon className="text-leaf" fontSize="small" /> Tiết kiệm đến 25% so với mua lẻ</li>
+                <li className="flex items-center gap-2"><CheckCircleIcon className="text-leaf" fontSize="small" /> Tạm dừng, đổi địa chỉ dễ dàng</li>
+              </ul>
+              <div className="mt-8">
+                <Button size="lg" onClick={() => navigate('/subscription')}>
+                  Khám phá các gói <ArrowForwardIcon fontSize="small" />
+                </Button>
+              </div>
+            </Reveal>
+          </div>
         </div>
       </section>
 

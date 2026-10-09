@@ -35,6 +35,8 @@ const Occasion = lazy(() => import('./pages/Occasion'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Admin = lazy(() => import('./pages/Admin'));
+const Subscription = lazy(() => import('./pages/Subscription'));
+const Help = lazy(() => import('./pages/Help'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PageFallback = () => (
@@ -104,6 +106,13 @@ export default function App() {
           <Route path="/about" element={<Page><About /></Page>} />
           <Route path="/contact" element={<Page><Contact /></Page>} />
           <Route path="/admin" element={<Page><Admin /></Page>} />
+          <Route path="/subscription" element={<Page><Subscription /></Page>} />
+          <Route path="/tro-giup" element={<Page><Help /></Page>} />
+          <Route path="/faq" element={<Page><Help /></Page>} />
+          <Route path="/chinh-sach-giao-hang" element={<Page><Help /></Page>} />
+          <Route path="/doi-tra" element={<Page><Help /></Page>} />
+          <Route path="/chinh-sach-bao-mat" element={<Page><Help /></Page>} />
+          <Route path="/dieu-khoan" element={<Page><Help /></Page>} />
 
           <Route path="*" element={<Page><NotFound /></Page>} />
           </Routes>

@@ -9,9 +9,11 @@ import Logout from '@mui/icons-material/Logout';
 import Add from '@mui/icons-material/Add';
 import Edit from '@mui/icons-material/Edit';
 import Delete from '@mui/icons-material/Delete';
+import EventRepeat from '@mui/icons-material/EventRepeat';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { getOrders, cancelOrder } from '../services/order.service';
+import { getSubscriptions, updateSubscription } from '../services/subscription.service';
 import { ORDER_STATUS_LABEL } from '../utils/constants';
 import { formatVND, formatDateTime } from '../utils/format';
 import { Field } from '../components/ui/Field';
@@ -33,8 +35,15 @@ const TABS = [
   { id: 'profile', label: 'Hồ sơ', icon: <Person /> },
   { id: 'addresses', label: 'Sổ địa chỉ', icon: <LocationOn /> },
   { id: 'orders', label: 'Đơn hàng', icon: <ReceiptLong /> },
+  { id: 'subscriptions', label: 'Gói định kỳ', icon: <EventRepeat /> },
   { id: 'password', label: 'Đổi mật khẩu', icon: <Lock /> },
 ];
+
+const SUB_STATUS = {
+  active: { label: 'Đang hoạt động', cls: 'bg-emerald-100 text-emerald-800' },
+  paused: { label: 'Tạm dừng', cls: 'bg-amber-100 text-amber-800' },
+  cancelled: { label: 'Đã hủy', cls: 'bg-red-100 text-red-700' },
+};
 
 const emptyAddress = { name: '', phone: '', address: '', ward: '', district: '', city: '', isDefault: false };
 
@@ -58,6 +67,8 @@ export default function Account() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState(false);
+  const [subs, setSubs] = useState([]);
+  const [subsLoading, setSubsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
 
   // ---- Đổi mật khẩu (mock) ----
@@ -80,6 +91,35 @@ export default function Account() {
       toast.error('Không tải được danh sách đơn hàng');
     } finally {
       setOrdersLoading(false);
+    }
+  };
+
+  // ---- Gói hoa định kỳ ----
+  useEffect(() => {
+    if (tab === 'subscriptions' && user?.id) loadSubs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, user?.id]);
+
+  const loadSubs = async () => {
+    setSubsLoading(true);
+    try {
+      const { items } = (await getSubscriptions(user.id)) || {};
+      setSubs(items || []);
+    } catch {
+      toast.error('Không tải được danh sách gói định kỳ');
+    } finally {
+      setSubsLoading(false);
+    }
+  };
+
+  const handleSubStatus = async (id, status, label) => {
+    if (status === 'cancelled' && !window.confirm('Bạn chắc chắn muốn hủy gói này?')) return;
+    try {
+      const { subscription } = await updateSubscription(id, status);
+      setSubs((prev) => prev.map((s) => (s.id === id ? subscription : s)));
+      toast.success(label);
+    } catch (e) {
+      toast.error(e.message || 'Cập nhật thất bại');
     }
   };
 
@@ -352,6 +392,77 @@ export default function Account() {
     </div>
   );
 
+  const renderSubscriptions = () => (
+    <div>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-xl font-semibold text-ink">Gói hoa định kỳ</h2>
+        <Link to="/subscription" className="rounded-xl bg-ink px-5 py-2.5 text-sm font-medium text-cream transition hover:bg-ink-soft">
+          Đăng ký gói mới
+        </Link>
+      </div>
+      {subsLoading ? (
+        <p className="text-sm text-ink/60">Đang tải...</p>
+      ) : subs.length === 0 ? (
+        <EmptyState
+          title="Chưa có gói định kỳ nào"
+          description="Đăng ký gói hoa tuần / 2 tuần / tháng để luôn có hoa tươi mà không cần nhớ đặt."
+          action={
+            <Link to="/subscription" className="rounded-xl bg-ink px-5 py-2.5 text-sm font-medium text-cream transition hover:bg-ink-soft">
+              Xem các gói
+            </Link>
+          }
+        />
+      ) : (
+        <div className="grid gap-4">
+          {subs.map((s) => {
+            const st = SUB_STATUS[s.status] || SUB_STATUS.active;
+            return (
+              <div key={s.id} className="rounded-2xl border border-sand bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-ink">{s.code} · {s.planName} — {s.sizeName}</p>
+                    <p className="text-xs text-ink/50">
+                      {s.durationMonths} tháng · {s.deliveries} lần giao · Giao tiếp theo: {s.nextDelivery}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${st.cls}`}>{st.label}</span>
+                </div>
+                <p className="mt-2 text-sm text-ink/60">
+                  {formatVND(s.pricePerDelivery)} / lần · Tổng <span className="font-semibold text-ink">{formatVND(s.total)}</span>
+                </p>
+                {s.status !== 'cancelled' && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {s.status === 'active' ? (
+                      <button
+                        onClick={() => handleSubStatus(s.id, 'paused', 'Đã tạm dừng gói')}
+                        className="rounded-xl border border-sand px-4 py-2 text-sm font-medium text-ink transition hover:border-ink"
+                      >
+                        Tạm dừng
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSubStatus(s.id, 'active', 'Đã tiếp tục gói')}
+                        className="rounded-xl border border-sand px-4 py-2 text-sm font-medium text-ink transition hover:border-ink"
+                      >
+                        Tiếp tục
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleSubStatus(s.id, 'cancelled', 'Đã hủy gói')}
+                      className="rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    >
+                      Hủy gói
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   const renderPassword = () => (
     <div className="max-w-md rounded-3xl border border-sand bg-white p-6 shadow-sm md:p-8">
       <h2 className="font-display text-xl font-semibold text-ink">Đổi mật khẩu</h2>
@@ -416,6 +527,7 @@ export default function Account() {
           {tab === 'profile' && renderProfile()}
           {tab === 'addresses' && renderAddresses()}
           {tab === 'orders' && renderOrders()}
+          {tab === 'subscriptions' && renderSubscriptions()}
           {tab === 'password' && renderPassword()}
         </div>
       </div>
