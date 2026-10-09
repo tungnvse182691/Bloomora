@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /checkout
+Disallow: /admin
+Disallow: /cart
+Disallow: /wishlist
+
+Sitemap: https://bloomora-nu.vercel.app/sitemap.xml

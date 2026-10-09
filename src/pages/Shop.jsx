@@ -34,7 +34,10 @@ const EMPTY_FILTERS = {
 const PAGE_SIZE = 12;
 
 export default function Shop() {
-  useDocumentTitle('Cửa hàng — Bloomora');
+  useDocumentTitle('Cửa hàng — Bloomora', {
+    description:
+      'Xem toàn bộ 40+ mẫu hoa tươi tại Bloomora: bó hoa, lẵng hoa, hộp hoa, hoa cưới. Lọc theo giá, màu sắc, dịp lễ — giao nhanh trong 2h.',
+  });
   const [searchParams] = useSearchParams();
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);

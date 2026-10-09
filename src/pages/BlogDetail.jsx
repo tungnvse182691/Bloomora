@@ -17,7 +17,10 @@ export default function BlogDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useDocumentTitle(post ? `${post.title} | Bloomora Blog` : 'Blog | Bloomora');
+  useDocumentTitle(post ? `${post.title} | Bloomora Blog` : 'Blog | Bloomora', {
+    description: post?.excerpt,
+    image: post?.cover,
+  });
 
   useEffect(() => {
     const load = async () => {

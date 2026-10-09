@@ -14,7 +14,12 @@ export default function Occasion() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useDocumentTitle(occasion ? `Hoa ${occasion.name} | Bloomora` : 'Dịp lễ | Bloomora');
+  useDocumentTitle(occasion ? `Hoa ${occasion.name} | Bloomora` : 'Dịp lễ | Bloomora', {
+    description: occasion
+      ? `Tuyển chọn hoa cho dịp ${occasion.name}: bó hoa, lẵng hoa đẹp & ý nghĩa. Giao nhanh trong 2h tại Bloomora.`
+      : undefined,
+    image: occasion?.image,
+  });
 
   useEffect(() => {
     const load = async () => {

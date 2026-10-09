@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { useAuthStore } from './store/useAuthStore';
+import { usePrivateRouteNoIndex } from './hooks/useDocumentTitle';
 
 // Layout / effects (created in parallel — import only, exact export names)
 import { Header } from './components/layout/Header';
@@ -15,28 +16,32 @@ import { PetalCanvas } from './components/effects/PetalCanvas';
 import { CustomCursor } from './components/effects/CustomCursor';
 import { FlyToCartLayer } from './components/effects/FlyToCartLayer';
 
-// Pages (P1–P3 pages by other agents — import only)
-import Home from './pages/Home';
-import Shop from './pages/Shop';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import CheckoutSuccess from './pages/CheckoutSuccess';
-import Wishlist from './pages/Wishlist';
+// Pages: lazy-load theo route để bundle ban đầu nhẹ (tăng tốc lần load đầu)
+const Home = lazy(() => import('./pages/Home'));
+const Shop = lazy(() => import('./pages/Shop'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Account = lazy(() => import('./pages/Account'));
+const OrderTracking = lazy(() => import('./pages/OrderTracking'));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogDetail = lazy(() => import('./pages/BlogDetail'));
+const Occasion = lazy(() => import('./pages/Occasion'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Admin = lazy(() => import('./pages/Admin'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Pages (P4–P5, this scope)
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import Account from './pages/Account';
-import OrderTracking from './pages/OrderTracking';
-import Blog from './pages/Blog';
-import BlogDetail from './pages/BlogDetail';
-import Occasion from './pages/Occasion';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Admin from './pages/Admin';
-import NotFound from './pages/NotFound';
+const PageFallback = () => (
+  <div className="min-h-[70vh] flex items-center justify-center bg-cream">
+    <div className="w-12 h-12 rounded-full border-4 border-sand border-t-rose animate-spin" aria-label="Đang tải trang" />
+  </div>
+);
 
 const ScrollToTopOnNav = () => {
   const { pathname } = useLocation();
@@ -66,6 +71,7 @@ const RequireAuth = ({ children }) => {
 
 export default function App() {
   const location = useLocation();
+  usePrivateRouteNoIndex();
 
   return (
     <>
@@ -75,7 +81,8 @@ export default function App() {
       <FlyToCartLayer />
       <Header />
       <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+        <Suspense fallback={<PageFallback />}>
+          <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Page><Home /></Page>} />
           <Route path="/shop" element={<Page><Shop /></Page>} />
           <Route path="/shop/:slug" element={<Page><ProductDetail /></Page>} />
@@ -99,7 +106,8 @@ export default function App() {
           <Route path="/admin" element={<Page><Admin /></Page>} />
 
           <Route path="*" element={<Page><NotFound /></Page>} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </AnimatePresence>
       <MiniCart />
       <SearchOverlay />

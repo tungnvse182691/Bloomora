@@ -62,7 +62,10 @@ const scrollToBestseller = () => {
 };
 
 export default function Home() {
-  useDocumentTitle('Bloomora — Hoa Tươi Mỗi Ngày');
+  useDocumentTitle('Bloomora — Hoa Tươi Mỗi Ngày', {
+    description:
+      'Bloomora — Shop hoa tươi Đà Lạt giao nhanh trong 2h. Bó hoa, lẵng hoa, hoa cưới, hoa khai trương với hàng trăm mẫu mới mỗi tuần.',
+  });
   const navigate = useNavigate();
   const heroRef = useRef(null);
   const bgRef = useRef(null);

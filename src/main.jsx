@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
-import { worker } from './mocks/browser.js';
+
+// Dynamic import để MSW (khá nặng) nằm ở chunk riêng, không phình bundle chính.
 
 // Demo deploy: MSW luôn bật để mock API hoạt động cả trên production.
 // Khi có backend thật, đổi lại thành: if (import.meta.env.DEV) { ... }
@@ -14,6 +15,7 @@ import { worker } from './mocks/browser.js';
 // apiFetch nhận data = null → crash "Cannot read properties of null (reading 'items')".
 async function bootstrap() {
   try {
+    const { worker } = await import('./mocks/browser.js');
     await worker.start({ onUnhandledRequest: 'bypass' });
   } catch (e) {
     console.warn('[MSW] Không khởi động được mock worker:', e);

@@ -68,7 +68,12 @@ export default function ProductDetail() {
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const hasWishlist = useWishlistStore((s) => s.has);
 
-  useDocumentTitle(product ? `${product.name} — Bloomora` : 'Chi tiết sản phẩm — Bloomora');
+  useDocumentTitle(product ? `${product.name} — Bloomora` : 'Chi tiết sản phẩm — Bloomora', {
+    description: product
+      ? `${product.name} — hoa tươi Đà Lạt, giao nhanh trong 2h, miễn phí thiệp viết tay. Xem chi tiết & đặt hàng tại Bloomora.`
+      : undefined,
+    image: product?.images?.[0],
+  });
 
   // ---- Tải sản phẩm
   useEffect(() => {
