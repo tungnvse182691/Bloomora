@@ -696,3 +696,27 @@ export const provinces = [
   { name: 'Lâm Đồng', fee: 35000 },
   { name: 'Bà Rịa - Vũng Tàu', fee: 35000 },
 ];
+
+// ---------------------------------------------------------------- subscriptions
+// Gói hoa định kỳ: giao hoa tươi lặp lại theo chu kỳ
+export const subscriptionPlans = [
+  { id: 'weekly', name: 'Hoa tuần', intervalDays: 7, discount: 0.05, desc: 'Mỗi tuần một bó hoa tươi mới, không gian luôn rực rỡ', icon: 'event_repeat' },
+  { id: 'biweekly', name: 'Hoa 2 tuần', intervalDays: 14, discount: 0.08, desc: 'Cân bằng giữa tươi mới và tiết kiệm — lựa chọn phổ biến nhất', icon: 'calendar_month' },
+  { id: 'monthly', name: 'Hoa tháng', intervalDays: 30, discount: 0.12, desc: 'Một bó hoa đặc biệt mỗi tháng, dành cho người bận rộn', icon: 'auto_awesome' },
+];
+
+export const subscriptionSizes = [
+  { id: 'S', name: 'Nhỏ xinh', price: 299000, desc: 'Bó hoa mini để bàn làm việc, kệ sách', stems: '7–9 cành' },
+  { id: 'M', name: 'Vừa vặn', price: 499000, desc: 'Bó hoa trang trí phòng khách, quầy lễ tân', stems: '12–15 cành', popular: true },
+  { id: 'L', name: 'Sang trọng', price: 799000, desc: 'Bó hoa lớn, ấn tượng cho không gian rộng', stems: '20–25 cành' },
+];
+
+export const subscriptionDurations = [
+  { months: 1, bonus: 0, label: '1 tháng' },
+  { months: 3, bonus: 0.05, label: '3 tháng' },
+  { months: 6, bonus: 0.1, label: '6 tháng' },
+  { months: 12, bonus: 0.15, label: '12 tháng' },
+];
+
+// Đăng ký gói của khách (mock, lưu trong memory)
+export const subscriptions = [];

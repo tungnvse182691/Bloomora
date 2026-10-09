@@ -2,6 +2,7 @@ import { http, HttpResponse, delay } from 'msw';
 import {
   categories, occasions, products, promos, users, orders,
   reviews, blogPosts, banners, provinces,
+  subscriptionPlans, subscriptionSizes, subscriptionDurations, subscriptions,
 } from './db.js';
 
 const wait = () => delay(300 + Math.random() * 500);
@@ -336,5 +337,73 @@ export const handlers = [
       .slice(0, 6)
       .map((p) => ({ slug: p.slug, name: p.name, image: p.images[0], price: p.price }));
     return HttpResponse.json({ items });
+  }),
+
+  // ------------------------------------------------------------- subscriptions
+  http.get('/api/subscriptions/plans', async () => {
+    await wait();
+    return HttpResponse.json({
+      plans: subscriptionPlans,
+      sizes: subscriptionSizes,
+      durations: subscriptionDurations,
+    });
+  }),
+
+  http.get('/api/subscriptions', async ({ request }) => {
+    await wait();
+    const userId = new URL(request.url).searchParams.get('userId');
+    const items = subscriptions
+      .filter((s) => !userId || s.userId === userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return HttpResponse.json({ items });
+  }),
+
+  http.post('/api/subscriptions', async ({ request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const { planId, sizeId, durationMonths, startDate, name, phone, address, city, note, userId } = body;
+    const plan = subscriptionPlans.find((p) => p.id === planId);
+    const size = subscriptionSizes.find((s) => s.id === sizeId);
+    const duration = subscriptionDurations.find((d) => d.months === Number(durationMonths));
+    if (!plan || !size || !duration) {
+      return HttpResponse.json({ message: 'Vui lòng chọn đầy đủ gói, kích thước và thời hạn' }, { status: 400 });
+    }
+    if (!name || !phone || !address) {
+      return HttpResponse.json({ message: 'Vui lòng điền đầy đủ thông tin nhận hoa' }, { status: 400 });
+    }
+    const pricePerDelivery = Math.round(size.price * (1 - plan.discount) * (1 - duration.bonus));
+    const deliveries = Math.max(1, Math.round((duration.months * 30) / plan.intervalDays));
+    const code = `SUB-${String(Math.floor(100000 + Math.random() * 900000))}`;
+    const now = new Date().toISOString();
+    const sub = {
+      id: `sub${Date.now()}`,
+      code,
+      userId: userId || 'u1',
+      planId: plan.id, planName: plan.name,
+      sizeId: size.id, sizeName: size.name,
+      durationMonths: duration.months,
+      pricePerDelivery, deliveries,
+      total: pricePerDelivery * deliveries,
+      startDate: startDate || now.slice(0, 10),
+      nextDelivery: startDate || now.slice(0, 10),
+      status: 'active',
+      name, phone, address, city: city || '', note: note || '',
+      createdAt: now,
+    };
+    subscriptions.unshift(sub);
+    return HttpResponse.json({ subscription: sub }, { status: 201 });
+  }),
+
+  http.patch('/api/subscriptions/:id', async ({ params, request }) => {
+    await wait();
+    const body = await request.json().catch(() => ({}));
+    const sub = subscriptions.find((s) => s.id === params.id);
+    if (!sub) return HttpResponse.json({ message: 'Không tìm thấy gói đăng ký' }, { status: 404 });
+    const { status } = body;
+    if (!['active', 'paused', 'cancelled'].includes(status)) {
+      return HttpResponse.json({ message: 'Trạng thái không hợp lệ' }, { status: 400 });
+    }
+    sub.status = status;
+    return HttpResponse.json({ subscription: sub });
   }),
 ];
