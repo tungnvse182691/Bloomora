@@ -39,5 +39,10 @@ export async function apiFetch(path, { method = 'GET', body, auth = false } = {}
   if (!res.ok) {
     throw new Error(data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
   }
+  if (data == null) {
+    // VD: service worker chưa kịp đăng ký, request rớt ra mạng thật và nhận
+    // về trang HTML (200) thay vì JSON. Ném lỗi rõ ràng thay vì để crash ở chỗ gọi hàm.
+    throw new Error('Không nhận được dữ liệu từ máy chủ, vui lòng tải lại trang');
+  }
   return data;
 }

@@ -73,7 +73,7 @@ export default function Account() {
     setOrdersLoading(true);
     setOrdersError(false);
     try {
-      const { items } = await getOrders(user.id);
+      const { items } = (await getOrders(user.id)) || {};
       setOrders(items || []);
     } catch {
       setOrdersError(true);

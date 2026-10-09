@@ -21,7 +21,7 @@ export default function Occasion() {
       setLoading(true);
       setError(false);
       try {
-        const [{ items: occasions }, { items }] = await Promise.all([
+        const [{ items: occasions } = {}, { items } = {}] = await Promise.all([
           getOccasions(),
           getProducts({ occasion: slug, limit: 24 }),
         ]);

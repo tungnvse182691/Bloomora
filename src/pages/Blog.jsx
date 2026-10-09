@@ -43,7 +43,7 @@ export default function Blog() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { items } = await getPosts();
+        const { items } = (await getPosts()) || {};
         setPosts(items || []);
       } catch {
         setError(true);

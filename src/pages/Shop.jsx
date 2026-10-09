@@ -89,7 +89,7 @@ export default function Shop() {
         if (filters.minPrice !== '' && filters.minPrice != null) params.minPrice = filters.minPrice;
         if (filters.maxPrice !== '' && filters.maxPrice != null) params.maxPrice = filters.maxPrice;
         if (filters.colors.length) params.colors = filters.colors.join(',');
-        const res = await getProducts(params);
+        const res = (await getProducts(params)) || {};
         if (!cancelled) setData({ items: res.items || [], total: res.total || 0, totalPages: res.totalPages || 1 });
       } catch (err) {
         if (!cancelled) toast.error(err.message || 'Không tải được sản phẩm');
@@ -105,14 +105,14 @@ export default function Shop() {
   // ---- Lọc client-side cho các tiêu chí API chưa hỗ trợ (minRating, occasions phụ)
   const visibleItems = useMemo(() => {
     const occasionIdBySlug = new Map(occasions.map((o) => [o.slug, o.id]));
-    let items = data.items;
+    let items = data?.items || [];
     if (filters.minRating > 0) items = items.filter((p) => p.rating >= filters.minRating);
     if (filters.occasions.length > 1) {
       const ids = new Set(filters.occasions.map((s) => occasionIdBySlug.get(s)).filter(Boolean));
       items = items.filter((p) => (p.occasionIds || []).some((id) => ids.has(id)));
     }
     return items;
-  }, [data.items, filters.minRating, filters.occasions, occasions]);
+  }, [data?.items, filters.minRating, filters.occasions, occasions]);
 
   const handleFilterChange = (patch) => {
     setFilters((f) => ({ ...f, ...patch }));

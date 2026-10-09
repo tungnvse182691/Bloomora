@@ -23,7 +23,7 @@ export default function Wishlist() {
     (async () => {
       setLoading(true);
       try {
-        const { items } = await getProducts({ limit: 100 });
+        const { items } = (await getProducts({ limit: 100 })) || {};
         if (!cancelled) setProducts((items || []).filter((p) => ids.includes(p.id)));
       } catch (err) {
         if (!cancelled) toast.error(err.message || 'Không tải được danh sách yêu thích');
